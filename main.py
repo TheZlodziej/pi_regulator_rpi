@@ -74,6 +74,7 @@ def main():
                 'temp_set': sim_config['temp_set'],
                 'temp': sens_values['temp']
             })
+            print("publishing...")
             sleep(sim_config['tp'])
 
     def update_sensor_data():
@@ -106,6 +107,7 @@ def main():
 
             # sleep for dt - time taken
             # TODO: ...
+           sleep(sim_config['tp'])
 
     client = mqtt.Client()
     client.on_message = on_message
