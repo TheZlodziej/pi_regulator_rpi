@@ -107,7 +107,7 @@ def main():
 
             # sleep for dt - time taken
             # TODO: ...
-           sleep(sim_config['tp'])
+            sleep(sim_config['tp'])
 
     client = mqtt.Client()
     client.on_message = on_message
