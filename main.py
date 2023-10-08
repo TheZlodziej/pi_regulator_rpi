@@ -12,10 +12,10 @@ except ImportError:
 def main():
     sim_config = {
         'tp': 1.0, # s
-        'temp_set': 25.0, # deg
-        'u_sat': 100, # wyp <0;100>
-        'kp': 1.823,
-        'ti': 35.9047
+        'temp_set': 22.0, # deg
+        'u_sat': 1,
+        'kp': 0.6413,
+        'ti': 35.3150
     }
 
     prev_sim_vals = {
@@ -32,19 +32,21 @@ def main():
     }
 
     sens_values = {
-        'temp': 22
+        'temp': None
     }
 
     # hardware
     bus = SMBus(1)
     bmp280 = BMP280(i2c_dev=bus)
-    
-    GPIO.setmode(GPIO.BCM)
+    print("BMP280 ready")
+
+    GPIO.setmode(GPIO.BOARD)
     GPIO.setwarnings(False)
     pwm_pin = 12
     GPIO.setup(pwm_pin, GPIO.OUT)
     pwm = GPIO.PWM(pwm_pin, 1000)
     pwm.start(0)
+    print("PWM ready")
     #
 
     def on_message(client, userdata, msg):
@@ -62,6 +64,7 @@ def main():
         
 
     def pub_thread_fn():
+        print("Publishing thread ready")
         while True:
             # publish current sensor values in format:
             #
@@ -70,10 +73,10 @@ def main():
             #   "temp": <float>,
             # }
             #
-            client.publish("uC/get", {
+            client.publish("uC/get", dumps({
                 'temp_set': sim_config['temp_set'],
                 'temp': sens_values['temp']
-            })
+            }))
             print("publishing...")
             sleep(sim_config['tp'])
 
@@ -82,6 +85,7 @@ def main():
         sens_values['temp'] = bmp280.get_temperature()
 
     def reg_thread_fn():
+        print("Regulator thread ready")
         while True:
             # update sensor data
             update_sensor_data()
@@ -99,7 +103,7 @@ def main():
             # saturation
             Ut = max(min(Ut, sim_config['u_sat']), 0)
             # set PWM duty
-            pwm.ChangeDutyCycle(Ut)
+            pwm.ChangeDutyCycle(Ut*100)
 
             # set prev
             prev_sim_vals['e(n-1)'] = Et
@@ -113,11 +117,16 @@ def main():
     client.on_message = on_message
     client.connect(mqtt_config['hostname'], mqtt_config['port'], mqtt_config['keep_alive'])
     client.subscribe(mqtt_config['set_topic'])
-    client.loop_forever()
+    print("MQTT client ready")
+
+    # update sensor data before reg start
+    update_sensor_data()
 
     thread_pool = [Thread(target=pub_thread_fn), Thread(target=reg_thread_fn)]
     for th in thread_pool:
         th.start()
+
+    client.loop_forever()
 
 if __name__ == '__main__':
     main()
