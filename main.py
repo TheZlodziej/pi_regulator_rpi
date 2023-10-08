@@ -4,7 +4,10 @@ from json import loads, dumps
 from time import sleep
 import RPi.GPIO as GPIO
 from bmp280 import BMP280
-from smbus import SMBus
+try:
+    from smbus2 import SMBus
+except ImportError:
+    from smbus import SMBus
 
 def main():
     sim_config = {
@@ -38,8 +41,9 @@ def main():
     
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
-    GPIO.setup(12, GPIO.OUT)
-    pwm = GPIO.PWM(12, GPIO.OUT)
+    pwm_pin = 12
+    GPIO.setup(pwm_pin, GPIO.OUT)
+    pwm = GPIO.PWM(pwm_pin, 1000)
     pwm.start(0)
     #
 
