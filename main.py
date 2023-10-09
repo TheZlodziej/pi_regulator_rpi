@@ -109,8 +109,7 @@ def main():
             prev_sim_vals['e(n-1)'] = Et
             prev_sim_vals['u(n-1)'] = Ut
 
-            # sleep for dt - time taken
-            # TODO: ...
+            # wait for tp time
             sleep(sim_config['tp'])
 
     client = mqtt.Client()
