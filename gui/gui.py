@@ -4,7 +4,7 @@ from paho.mqtt.client import Client
 from json import dumps, loads
 from time import time
 from PySide6.QtCharts import QScatterSeries, QLineSeries, QChart
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QPainter, QColor
 
 class RegBackend():
     def __init__(self):
@@ -47,7 +47,7 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
         self.__temp_series.setName("Current temperature")
         self.__temp_set_series = QLineSeries()
         self.__temp_set_series.setColor("#0000ff")
-        #self.__temp_set_series.setBorderColor("#000000")
+        self.__temp_series.setBorderColor(QColor(0, 0, 0, 0))
         self.__temp_set_series.setName("Set temperature")
         self.live_chart = QChart()
         self.live_chart.addSeries(self.__temp_set_series)
@@ -89,7 +89,7 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
 
         min_x = self.__points[0]["t"] if len(self.__points) > 0 else 0
         x_ax.setRange(min_x, t)
-        y_ax.setRange(min_x, 45)
+        y_ax.setRange(20, 40)
         
         
     def __setup_connects(self):
