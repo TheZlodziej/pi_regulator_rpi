@@ -110,7 +110,7 @@ class Ui_MainWindow(object):
         self.set_temp_input.setObjectName(u"set_temp_input")
         self.set_temp_input.setMinimum(22.000000000000000)
         self.set_temp_input.setMaximum(42.000000000000000)
-        self.set_temp_input.setValue(36.000000000000000)
+        self.set_temp_input.setValue(22.000000000000000)
 
         self.temp_hlayout.addWidget(self.set_temp_input)
 
