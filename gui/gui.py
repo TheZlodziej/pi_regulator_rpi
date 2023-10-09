@@ -117,7 +117,6 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
             filename = f"temp_monitor_{datetime.now().strftime('%d.%m.%Y_%H-%M')}.json"
             with open(filename, "w") as output:
                 output.write(dumps(self.__points))
-                on_clear_data_btn_clicked()
                 print(f"Saved to {filename}")
 
         self.clear_data_btn.clicked.connect(on_clear_data_btn_clicked)
