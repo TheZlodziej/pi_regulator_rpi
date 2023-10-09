@@ -67,6 +67,7 @@ class Ui_MainWindow(object):
 
         self.broker_port = QSpinBox(self.centralwidget)
         self.broker_port.setObjectName(u"broker_port")
+        self.broker_port.setCursor(QCursor(Qt.PointingHandCursor))
         self.broker_port.setMaximum(65535)
         self.broker_port.setValue(1883)
 
@@ -77,6 +78,12 @@ class Ui_MainWindow(object):
 
         self.broker_connect_hlayout = QHBoxLayout()
         self.broker_connect_hlayout.setObjectName(u"broker_connect_hlayout")
+        self.clear_data_btn = QPushButton(self.centralwidget)
+        self.clear_data_btn.setObjectName(u"clear_data_btn")
+        self.clear_data_btn.setCursor(QCursor(Qt.PointingHandCursor))
+
+        self.broker_connect_hlayout.addWidget(self.clear_data_btn)
+
         self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.broker_connect_hlayout.addItem(self.horizontalSpacer_2)
@@ -97,6 +104,26 @@ class Ui_MainWindow(object):
 
         self.temp_hlayout = QHBoxLayout()
         self.temp_hlayout.setObjectName(u"temp_hlayout")
+        self.current_temp_hlayout = QHBoxLayout()
+        self.current_temp_hlayout.setObjectName(u"current_temp_hlayout")
+        self.curr_temp_lbl = QLabel(self.centralwidget)
+        self.curr_temp_lbl.setObjectName(u"curr_temp_lbl")
+
+        self.current_temp_hlayout.addWidget(self.curr_temp_lbl)
+
+        self.curr_temp_val_lbl = QLabel(self.centralwidget)
+        self.curr_temp_val_lbl.setObjectName(u"curr_temp_val_lbl")
+
+        self.current_temp_hlayout.addWidget(self.curr_temp_val_lbl)
+
+        self.curr_temp_degree_lbl = QLabel(self.centralwidget)
+        self.curr_temp_degree_lbl.setObjectName(u"curr_temp_degree_lbl")
+
+        self.current_temp_hlayout.addWidget(self.curr_temp_degree_lbl)
+
+
+        self.temp_hlayout.addLayout(self.current_temp_hlayout)
+
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.temp_hlayout.addItem(self.horizontalSpacer)
@@ -108,6 +135,7 @@ class Ui_MainWindow(object):
 
         self.set_temp_input = QDoubleSpinBox(self.centralwidget)
         self.set_temp_input.setObjectName(u"set_temp_input")
+        self.set_temp_input.setCursor(QCursor(Qt.PointingHandCursor))
         self.set_temp_input.setMinimum(22.000000000000000)
         self.set_temp_input.setMaximum(42.000000000000000)
         self.set_temp_input.setValue(22.000000000000000)
@@ -116,6 +144,7 @@ class Ui_MainWindow(object):
 
         self.set_temp_btn = QPushButton(self.centralwidget)
         self.set_temp_btn.setObjectName(u"set_temp_btn")
+        self.set_temp_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         self.temp_hlayout.addWidget(self.set_temp_btn)
 
@@ -124,12 +153,33 @@ class Ui_MainWindow(object):
 
         self.save_hlayout = QHBoxLayout()
         self.save_hlayout.setObjectName(u"save_hlayout")
+        self.current_setpoint_hlayout = QHBoxLayout()
+        self.current_setpoint_hlayout.setObjectName(u"current_setpoint_hlayout")
+        self.curr_setpoint_lbl = QLabel(self.centralwidget)
+        self.curr_setpoint_lbl.setObjectName(u"curr_setpoint_lbl")
+
+        self.current_setpoint_hlayout.addWidget(self.curr_setpoint_lbl)
+
+        self.curr_setpoint_val_lbl = QLabel(self.centralwidget)
+        self.curr_setpoint_val_lbl.setObjectName(u"curr_setpoint_val_lbl")
+
+        self.current_setpoint_hlayout.addWidget(self.curr_setpoint_val_lbl)
+
+        self.curr_setpoint_degree_lbl = QLabel(self.centralwidget)
+        self.curr_setpoint_degree_lbl.setObjectName(u"curr_setpoint_degree_lbl")
+
+        self.current_setpoint_hlayout.addWidget(self.curr_setpoint_degree_lbl)
+
+
+        self.save_hlayout.addLayout(self.current_setpoint_hlayout)
+
         self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.save_hlayout.addItem(self.horizontalSpacer_3)
 
         self.save_data_btn = QPushButton(self.centralwidget)
         self.save_data_btn.setObjectName(u"save_data_btn")
+        self.save_data_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         self.save_hlayout.addWidget(self.save_data_btn)
 
@@ -160,12 +210,19 @@ class Ui_MainWindow(object):
 #if QT_CONFIG(tooltip)
         self.broker_port.setToolTip(QCoreApplication.translate("MainWindow", u"Broker port (1-65535)", None))
 #endif // QT_CONFIG(tooltip)
+        self.clear_data_btn.setText(QCoreApplication.translate("MainWindow", u"Clear data", None))
 #if QT_CONFIG(tooltip)
         self.broker_connect_btn.setToolTip(QCoreApplication.translate("MainWindow", u"Connect to broker", None))
 #endif // QT_CONFIG(tooltip)
         self.broker_connect_btn.setText(QCoreApplication.translate("MainWindow", u"Connect to broker", None))
+        self.curr_temp_lbl.setText(QCoreApplication.translate("MainWindow", u"Current temperature:", None))
+        self.curr_temp_val_lbl.setText(QCoreApplication.translate("MainWindow", u"-", None))
+        self.curr_temp_degree_lbl.setText(QCoreApplication.translate("MainWindow", u"\u00b0C", None))
         self.set_temp_lbl.setText(QCoreApplication.translate("MainWindow", u"Temperature (\u00b0C)", None))
         self.set_temp_btn.setText(QCoreApplication.translate("MainWindow", u"Set", None))
+        self.curr_setpoint_lbl.setText(QCoreApplication.translate("MainWindow", u"Current set temperature", None))
+        self.curr_setpoint_val_lbl.setText(QCoreApplication.translate("MainWindow", u"-", None))
+        self.curr_setpoint_degree_lbl.setText(QCoreApplication.translate("MainWindow", u"\u00b0C", None))
         self.save_data_btn.setText(QCoreApplication.translate("MainWindow", u"Save data", None))
     # retranslateUi
 

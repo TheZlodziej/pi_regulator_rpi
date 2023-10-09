@@ -5,6 +5,7 @@ from json import dumps, loads
 from time import time
 from PySide6.QtCharts import QScatterSeries, QLineSeries, QChart
 from PySide6.QtGui import QPainter, QColor
+from datetime import datetime
 
 class RegBackend():
     def __init__(self):
@@ -40,9 +41,15 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
     def __init__(self, backend):
         super(RegMainWindow, self).__init__()
         self.setupUi(self)
+        self.__setup_chart()
+        self.__points = [] # list of { "temp_set": float, "temp": float, "t": time }
+        self.__backend = backend
+        self.__backend.set_on_message_cb(self.__on_message)
+        self.__setup_connects()
 
+    def __setup_chart(self):
         self.__temp_series = QScatterSeries()
-        self.__temp_series.setMarkerSize(8)
+        self.__temp_series.setMarkerSize(4)
         self.__temp_series.setColor("#ff0000")
         self.__temp_series.setName("Current temperature")
         self.__temp_set_series = QLineSeries()
@@ -60,11 +67,6 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
         y_axe.setTitleText("Temperature [°C]")
         self.__start = time()
 
-        self.__points = [] # list of { "temp_set": float, "temp": float, "t": time }
-        self.__backend = backend
-        self.__backend.set_on_message_cb(self.__on_message)
-        self.__setup_connects()
-
     def __on_message(self, client, userdata, message):
         def validate(d):
             if d.get("temp_set") and d.get("temp"):
@@ -78,35 +80,47 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
         temp_set = data.get("temp_set")
         temp = data.get("temp")
         t = time() - self.__start
+
+        # save points
         self.__points.append({
             "temp_set": temp_set,
             "temp": temp,
             "t": t
         })
+
+        # curr values
+        self.curr_setpoint_val_lbl.setText("{:.2f}".format(temp_set))
+        self.curr_temp_val_lbl.setText("{:.2f}".format(temp))
+
+        # series
         self.__temp_series.append(t, temp)
         self.__temp_set_series.append(t, temp_set)
         x_ax, y_ax = self.live_chart.axes()
-
         min_x = self.__points[0]["t"] if len(self.__points) > 0 else 0
         x_ax.setRange(min_x, t)
         y_ax.setRange(20, 40)
         
         
     def __setup_connects(self):
+        def on_clear_data_btn_clicked():
+            self.__points.clear()
+            self.__start = time()
+
         def on_connect_btn_clicked():
             if self.__backend.connect(self.broker_hostname.text(), self.broker_port.value()):
-                self.__points.clear()
-                self.__start = time()
+                on_clear_data_btn_clicked()
             
         def on_set_temp_btn_clicked():
             self.__backend.send_new_value(self.set_temp_input.value())
 
         def on_save_data_btn_clicked():
-            with open("output.json", "w") as output:
+            filename = f"temp_monitor_{datetime.now().strftime('%d.%m.%Y_%H-%M')}.json"
+            with open(filename, "w") as output:
                 output.write(dumps(self.__points))
-                self.__points.clear()
-                self.__start = time()
+                on_clear_data_btn_clicked()
+                print(f"Saved to {filename}")
 
+        self.clear_data_btn.clicked.connect(on_clear_data_btn_clicked)
         self.broker_connect_btn.clicked.connect(on_connect_btn_clicked)
         self.set_temp_btn.clicked.connect(on_set_temp_btn_clicked)
         self.save_data_btn.clicked.connect(on_save_data_btn_clicked)
