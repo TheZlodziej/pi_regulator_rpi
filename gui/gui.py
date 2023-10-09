@@ -1,129 +1,122 @@
-import sys
-import json
-import paho.mqtt.client as mqtt
-from datetime import datetime
-from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
-                               QLineEdit, QSpinBox, QPushButton, QLabel, QWidget)
-from PySide6 import QtCharts
-from PySide6.QtCore import Qt, QDateTime
+from mainwindow import Ui_MainWindow
+from PySide6.QtWidgets import QMainWindow, QApplication
+from paho.mqtt.client import Client
+from json import dumps, loads
+from time import time
+from PySide6.QtCharts import QScatterSeries, QLineSeries, QChart
+from PySide6.QtGui import QPainter
 
-data_points = []
-
-class MQTTApp(QMainWindow):
+class RegBackend():
     def __init__(self):
-        super().__init__()
+        self.__client = Client()
+        self.__client.subscribe("uC/get")
+       
+    def set_on_message_cb(self, cb):
+        self.__client.on_message = cb
 
-        # Initial MQTT setup
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.on_message = self.on_message
+    def connect(self, host, port):
+        self.__client.loop_stop()
+        print("Connecting to broker...")
+        try:
+            self.__client.connect(host, port)
+            self.__client.subscribe("uC/get")
+            self.__client.loop_start()
+        except ConnectionError:
+            print("Error connecting to broker")
+            return False
+        except Exception:
+            print("Unknown error when connecting to broker")
+            return False
+        print("Connected.")
+        return True
 
-        # GUI setup
-        self.setWindowTitle("MQTT Chart")
-        self.setGeometry(100, 100, 800, 600)
+    def send_new_value(self, value):
+        # format
+        # { "temp_set": <value> }
+        if self.__client.is_connected():
+            self.__client.publish("uC/set", dumps({"temp_set": value}))
 
-        layout = QVBoxLayout()
-        central_widget = QWidget(self)
-        self.setCentralWidget(central_widget)
-        central_widget.setLayout(layout)
+class RegMainWindow(Ui_MainWindow, QMainWindow):
+    def __init__(self, backend):
+        super(RegMainWindow, self).__init__()
+        self.setupUi(self)
 
-        # Hostname and Port setup
-        connection_layout = QHBoxLayout()
-        layout.addLayout(connection_layout)
+        self.__temp_series = QScatterSeries()
+        self.__temp_series.setMarkerSize(8)
+        self.__temp_series.setColor("#ff0000")
+        self.__temp_series.setName("Current temperature")
+        self.__temp_set_series = QLineSeries()
+        self.__temp_set_series.setColor("#0000ff")
+        #self.__temp_set_series.setBorderColor("#000000")
+        self.__temp_set_series.setName("Set temperature")
+        self.live_chart = QChart()
+        self.live_chart.addSeries(self.__temp_set_series)
+        self.live_chart.addSeries(self.__temp_series)
+        self.live_chart.createDefaultAxes()
+        self.chart.setChart(self.live_chart)
+        self.chart.setRenderHint(QPainter.RenderHint.Antialiasing)
+        x_axe, y_axe = self.live_chart.axes()
+        x_axe.setTitleText("Time [s]")
+        y_axe.setTitleText("Temperature [°C]")
+        self.__start = time()
 
-        connection_layout.addWidget(QLabel("Hostname:"))
-        self.hostname_input = QLineEdit("192.168.0.21")
-        connection_layout.addWidget(self.hostname_input)
+        self.__points = [] # list of { "temp_set": float, "temp": float, "t": time }
+        self.__backend = backend
+        self.__backend.set_on_message_cb(self.__on_message)
+        self.__setup_connects()
 
-        connection_layout.addWidget(QLabel("Port:"))
-        self.port_input = QLineEdit("1883")
-        connection_layout.addWidget(self.port_input)
+    def __on_message(self, client, userdata, message):
+        def validate(d):
+            if d.get("temp_set") and d.get("temp"):
+                return True
+            return False
+        
+        data = loads(message.payload)
+        if not validate(data):
+            return
+        
+        temp_set = data.get("temp_set")
+        temp = data.get("temp")
+        t = time() - self.__start
+        self.__points.append({
+            "temp_set": temp_set,
+            "temp": temp,
+            "t": t
+        })
+        self.__temp_series.append(t, temp)
+        self.__temp_set_series.append(t, temp_set)
+        x_ax, y_ax = self.live_chart.axes()
 
-        self.connect_btn = QPushButton("Połącz")
-        self.connect_btn.clicked.connect(self.connect_to_broker)
-        connection_layout.addWidget(self.connect_btn)
+        min_x = self.__points[0]["t"] if len(self.__points) > 0 else 0
+        x_ax.setRange(min_x, t)
+        y_ax.setRange(min_x, 45)
+        
+        
+    def __setup_connects(self):
+        def on_connect_btn_clicked():
+            if self.__backend.connect(self.broker_hostname.text(), self.broker_port.value()):
+                self.__points.clear()
+                self.__start = time()
+            
+        def on_set_temp_btn_clicked():
+            self.__backend.send_new_value(self.set_temp_input.value())
 
-        # Chart setup
-        self.chart = QtCharts.QChart()
-        self.chart_view = QtCharts.QChartView(self.chart)
-        layout.addWidget(self.chart_view)
+        def on_save_data_btn_clicked():
+            with open("output.json", "w") as output:
+                output.write(dumps(self.__points))
+                self.__points.clear()
 
-        self.temp_set_series = QtCharts.QLineSeries()
-        self.temp_series = QtCharts.QLineSeries()
-        self.chart.addSeries(self.temp_set_series)
-        self.chart.addSeries(self.temp_series)
-
-        self.axisX = QtCharts.QDateTimeAxis()
-        self.axisX.setTitleText("Time")
-        self.axisX.setFormat("hh:mm:ss")
-        self.axisY = QtCharts.QValueAxis()
-        self.axisY.setTitleText("Temperature (°C)")
-        self.axisY.setRange(0, 50)
-
-        self.chart.addAxis(self.axisX, Qt.AlignBottom)
-        self.chart.addAxis(self.axisY, Qt.AlignLeft)
-
-        self.temp_set_series.attachAxis(self.axisX)
-        self.temp_set_series.attachAxis(self.axisY)
-        self.temp_series.attachAxis(self.axisX)
-        self.temp_series.attachAxis(self.axisY)
-
-        layout.addWidget(QLabel("Zadaj temperaturę:"))
-
-        self.spin_box = QSpinBox(self)
-        self.spin_box.setRange(22, 40)
-        layout.addWidget(self.spin_box)
-
-        self.set_temp_btn = QPushButton("Zadaj temperaturę")
-        self.set_temp_btn.clicked.connect(self.on_set_temp_button_pressed)
-        layout.addWidget(self.set_temp_btn)
-
-        self.save_data_btn = QPushButton("Zapisz dane")
-        self.save_data_btn.clicked.connect(self.on_save_data_button_pressed)
-        layout.addWidget(self.save_data_btn)
-
-    def connect_to_broker(self):
-        if self.mqtt_client.is_connected():
-            self.mqtt_client.disconnect()
-        hostname = self.hostname_input.text()
-        port = int(self.port_input.text())
-        self.mqtt_client.connect(hostname, port, 60)
-        self.mqtt_client.subscribe("uC/get")
-        self.mqtt_client.loop_start()
-
-    def on_message(self, client, userdata, msg):
-        payload = json.loads(msg.payload.decode())
-        temp_set = payload['temp_set']
-        temp = payload['temp']
-        timestamp = QDateTime.currentDateTime()
-
-        # Update chart
-        self.temp_set_series.append(timestamp.toMSecsSinceEpoch(), temp_set)
-        self.temp_series.append(timestamp.toMSecsSinceEpoch(), temp)
-
-        # Adjust the X axis range
-        if len(self.temp_set_series.points()) > 1:
-            self.axisX.setMin(self.temp_set_series.at(0).x())
-            self.axisX.setMax(self.temp_set_series.at(-1).x())
-
-        # Store data
-        data_points.append({"temp": temp, "temp_set": temp_set, "t": timestamp.toString('yyyy-MM-dd hh:mm:ss')})
-
-    def on_set_temp_button_pressed(self):
-        temp_set_value = self.spin_box.value()
-        payload = {"temp_set": temp_set_value}
-        self.mqtt_client.publish("uC/set", json.dumps(payload))
-
-    def on_save_data_button_pressed(self):
-        with open('data_points.json', 'w') as f:
-            json.dump(data_points, f, indent=4)
-
-    def closeEvent(self, event):
-        if self.mqtt_client.is_connected():
-            self.mqtt_client.disconnect()
-            self.mqtt_client.loop_stop()
+        self.broker_connect_btn.clicked.connect(on_connect_btn_clicked)
+        self.set_temp_btn.clicked.connect(on_set_temp_btn_clicked)
+        self.save_data_btn.clicked.connect(on_save_data_btn_clicked)
 
 if __name__ == '__main__':
-    app = QApplication([])
-    window = MQTTApp()
-    window.show()
-    sys.exit(app.exec_())
+    try:
+        app = QApplication()
+        window = RegMainWindow(RegBackend())
+        window.show()
+        app.exec()
+    except KeyboardInterrupt:
+        app.quit()
+    except Exception as e:
+        print(e)
