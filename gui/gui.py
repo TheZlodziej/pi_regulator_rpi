@@ -105,6 +105,7 @@ class RegMainWindow(Ui_MainWindow, QMainWindow):
             with open("output.json", "w") as output:
                 output.write(dumps(self.__points))
                 self.__points.clear()
+                self.__start = time()
 
         self.broker_connect_btn.clicked.connect(on_connect_btn_clicked)
         self.set_temp_btn.clicked.connect(on_set_temp_btn_clicked)
